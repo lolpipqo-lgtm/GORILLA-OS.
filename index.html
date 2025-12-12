@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gorilla OS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Press Start 2P', monospace;
+    background: #003300;
+    color: white;
+    overflow: hidden;
+}
+
+/* LOGIN & LOADING */
+#loginScreen, #loadingScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #003300;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#loginScreen input {
+    background: #003300;
+    color: white;
+    border: 2px solid white;
+    padding: 12px;
+    margin: 10px 0;
+    font-size: 20px;
+    width: 400px;
+}
+
+button {
+    font-size: 20px;
+    padding: 12px 24px;
+    background: #005500;
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+}
+
+#loadingScreen { display: none; font-size: 28px; }
+
+/* OS LAYOUT */
+#os { display: none; height: 100%; display: flex; flex-direction: row; }
+
+/* Sidebar */
+#sidebar {
+    width: 400px; 
+    background: #003300;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 20px 0;
+}
+
+#sidebar .menu {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    font-size: 72px; 
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    margin: 10px 0;
+    overflow: visible;
+    white-space: nowrap;
+    padding-left: 20px;
+}
+
+#sidebar .menu.active { color: #00ff00; }
+
+/* Content */
+#content {
+    flex: 1;
+    padding: 50px;
+    padding-left: 30px; 
+    overflow-y: auto;
+    font-size: 28px;
+    box-sizing: border-box;
+}
+
+/* Sections */
+.section { display: none; }
+.section.active { display: block; }
+
+/* Tracker canvas */
+#tracker canvas {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Entities */
+.entity-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.entity {
+    display: inline-block;
+    width: 220px;
+    height: 220px;
+    margin: 25px;
+    background: #222;
+    color: white;
+    text-align: center;
+    vertical-align: top;
+    font-size: 20px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+.entity.8ball { background: white; color: black; }
+.entity.four { background: limegreen; color: black; }
+
+input[type=text], input[type=password] { font-size: 22px; padding: 12px; width: 400px; background: #003300; color: white; border: 2px solid white; }
+canvas { border: none; background: #003300; }
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+    <h1 style="font-size: 36px;">PLEASE LOG IN.</h1>
+    <input type="text" id="username" placeholder="Username"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <button onclick="login()">ENTER</button>
+    <p id="error" style="color:red; font-size:18px; margin-top:10px;"></p>
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+    BOOTING<span id="dots"></span>
+</div>
+
+<!-- OS INTERFACE -->
+<div id="os">
+    <div id="sidebar">
+        <div class="menu active" data-section="name">NAME</div>
+        <div class="menu" data-section="tracker">TRACKER</div>
+        <div class="menu" data-section="troop">TROOP</div>
+        <div class="menu" data-section="entities">ENTITIES</div>
+    </div>
+    <div id="content">
+        <!-- Name Section -->
+        <div id="name" class="section active">
+            <p>CURRENT NAME: <span id="currentName">User</span></p>
+            <p>NEW NAME:</p>
+            <input type="text" id="newName" placeholder="Type new name">
+            <button onclick="updateName()">ENTER</button>
+        </div>
+
+        <!-- Tracker Section -->
+        <div id="tracker" class="section">
+            <canvas id="map" width="900" height="550"></canvas>
+        </div>
+
+        <!-- Troop Section -->
+        <div id="troop" class="section">
+            <p>ADD TROOP</p>
+            <p>WEIRDTRONIC</p>
+            <p>HYPERPOINT</p>
+            <p>NEO</p>
+            <p>BLUEINSUNLIGHT</p>
+        </div>
+
+        <!-- Entities Section -->
+        <div id="entities" class="section">
+            <div class="entity-container">
+                <div class="entity"> <p>Radio</p> <p>The mastermind.</p> </div>
+                <div class="entity 8ball"> <p>8ball</p> <p>The king.</p> </div>
+                <div class="entity four"> <p>Four</p> <p>The pawn.</p> </div>
+                <div class="entity" style="background:black;"> <p>?????</p> <p>Unreadable</p> </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.onload = function(){
+const correctUsername="GORILLATAGPRO";
+const correctPassword="PROTECTTHEM";
+
+window.login = function(){
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const error = document.getElementById('error');
+    if(username === correctUsername && password === correctPassword){
+        document.getElementById('loginScreen').style.display='none';
+        showLoading();
+    } else error.innerText="Incorrect username or password.";
+}
+
+function showLoading(){
+    const loadingScreen=document.getElementById('loadingScreen');
+    loadingScreen.style.display='flex';
+    let dotCount=0;
+    const dotsElem=document.getElementById('dots');
+    const interval=setInterval(()=>{ dotCount=(dotCount%3)+1; dotsElem.innerText='.'.repeat(dotCount).split('').join(' '); },500);
+    setTimeout(()=>{ clearInterval(interval); loadingScreen.style.display='none'; document.getElementById('os').style.display='flex'; initOS(); },2000);
+}
+
+function initOS(){
+    const sections = document.querySelectorAll('.section');
+    const menus = document.querySelectorAll('.menu');
+    function showSection(sectionId){
+        sections.forEach(sec=>sec.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+        menus.forEach(menu=>menu.classList.remove('active'));
+        document.querySelector(`.menu[data-section=${sectionId}]`).classList.add('active');
+    }
+    menus.forEach(menu=>menu.addEventListener('click',()=>showSection(menu.dataset.section)));
+    window.updateName = function(){ const newName=document.getElementById('newName').value; if(newName) document.getElementById('currentName').innerText=newName; };
+    document.addEventListener('keydown', (e)=>{
+        const active=document.querySelector('.menu.active');
+        let index=Array.from(menus).indexOf(active);
+        if(e.key==='ArrowUp'){index=(index-1+menus.length)%menus.length; showSection(menus[index].dataset.section);}
+        if(e.key==='ArrowDown'){index=(index+1)%menus.length; showSection(menus[index].dataset.section);}
+    });
+
+    // Tracker map
+    const canvas=document.getElementById('map');
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#005500'; ctx.fillRect(50,50,300,200); ctx.fillStyle='white'; ctx.font='24px "Press Start 2P"'; ctx.fillText('FOREST',120,150);
+    ctx.fillStyle='#005500'; ctx.fillRect(400,50,350,200); ctx.fillStyle='white'; ctx.fillText('MINES',500,150);
+    ctx.fillStyle='#005500'; ctx.fillRect(200,300,500,200); ctx.fillStyle='white'; ctx.fillText('CITY',400,400);
+    ctx.fillStyle='red'; ctx.fillRect(100,100,15,15); ctx.fillRect(450,100,15,15); ctx.fillRect(250,350,15,15); ctx.fillRect(550,350,15,15);
+}
+}
+</script>
+</body>
+</html>
